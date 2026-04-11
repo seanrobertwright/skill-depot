@@ -1,0 +1,11 @@
+# Archon runtime artifacts (never commit)
+.archon/mcp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
