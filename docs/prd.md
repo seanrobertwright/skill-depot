@@ -240,9 +240,9 @@ skills:
 | Write `skill-depot.sh remove` command | Yes — alongside add | Complete |
 | Create initial `registry.yaml` (5–10 known skills) | Yes — parallel to script | Complete |
 | End-to-end test: install/list/remove and verify skill files (`SKILL.md`) | No — after all above | Complete |
-| Manual check: verify Claude Code loads and uses installed project skill | No — after all above | Not started |
+| Manual check: verify Claude Code loads and uses installed project skill | No — after all above | Complete |
 
-**Reference:** See PR #1 discussion for phase planning artifacts.
+**Reference:** See PR #1 discussion for phase planning artifacts. Manual skill-load check confirmed live on 2026-04-15 via `/skills` in Claude Code.
 
 ### Phase 2 — Registry & Short Names
 
