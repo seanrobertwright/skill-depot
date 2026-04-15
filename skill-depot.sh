@@ -148,31 +148,55 @@ cmd_add() {
 
   # Clone
   mkdir -p "$SKILLS_DIR"
-  local tmp
+  local tmp staging_parent staged_target
   tmp="$(mktemp -d)"
+  staging_parent="$(mktemp -d "${SKILLS_DIR}/.${name}.tmp.XXXXXX")"
+  staged_target="${staging_parent}/${name}"
+  trap 'rm -rf "${tmp:-}" "${staging_parent:-}"' EXIT
 
   echo "Installing skill '${name}'..."
-  if ! git clone --depth 1 --quiet "$url" "$tmp/repo"; then
-    rm -rf "$tmp"
+  if ! GIT_TERMINAL_PROMPT=0 git clone --depth 1 --quiet "$url" "$tmp/repo"; then
     echo "Error: failed to clone ${url}"
     exit 1
   fi
 
   # Extract skill (subdirectory or whole repo)
   if [[ -n "$subdir" ]]; then
+    local repo_root source_path
+    case "$subdir" in
+      /*|*"/.."|*"/../"*|".."|*"/."|*"/./"*|"."|*//*)
+        echo "Error: invalid subdirectory '${subdir}' in ${url}"
+        exit 1
+        ;;
+    esac
+
     if [[ ! -d "$tmp/repo/$subdir" ]]; then
-      rm -rf "$tmp"
       echo "Error: subdirectory '${subdir}' not found in ${url}"
       exit 1
     fi
-    cp -r "$tmp/repo/$subdir" "$target"
+
+    repo_root="$(cd "$tmp/repo" && pwd -P)"
+    source_path="$(cd "$tmp/repo/$subdir" && pwd -P)"
+
+    case "$source_path" in
+      "$repo_root"|"$repo_root"/*)
+        ;;
+      *)
+        echo "Error: invalid subdirectory '${subdir}' in ${url}"
+        exit 1
+        ;;
+    esac
+
+    cp -r "$source_path" "$staged_target"
   else
     # Copy whole repo, excluding .git
-    mkdir -p "$target"
-    (cd "$tmp/repo" && find . -maxdepth 1 ! -name . ! -name .git -exec cp -r {} "$target/" \;)
+    mkdir -p "$staged_target"
+    (cd "$tmp/repo" && find . -maxdepth 1 ! -name . ! -name .git -exec cp -r {} "$staged_target/" \;)
   fi
 
-  rm -rf "$tmp"
+  mv "$staged_target" "$target"
+  trap - EXIT
+  rm -rf "$tmp" "$staging_parent"
 
   # Verify SKILL.md exists
   if [[ ! -f "$target/SKILL.md" ]]; then

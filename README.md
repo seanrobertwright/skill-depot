@@ -7,12 +7,15 @@ A one-command, project-scoped installer for Claude Code skills.
 ## Quick Start
 
 ```bash
-# Clone this repo (or download skill-depot.sh)
+# Clone this repo (recommended, includes registry.yaml)
 git clone https://github.com/seanrobertwright/skill-depot.git
 cd skill-depot
 
 # Install a skill into your project by short name
 ./skill-depot.sh add pdf
+
+# If you download only skill-depot.sh, use direct GitHub URLs
+# (short names require registry.yaml next to the script)
 
 # Or install directly from a GitHub URL
 ./skill-depot.sh add https://github.com/anthropics/skills#skills/claude-api

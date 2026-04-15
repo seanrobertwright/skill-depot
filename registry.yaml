@@ -1,12 +1,16 @@
 # Skill Depot Registry v1
 # Maps short names to GitHub skill source URLs
-# Format: <name>: <github-clone-url>#<subdirectory-path>
+# Format:
+#   skills:
+#     <name>: <github-clone-url>#<subdirectory-path>
 #
 # URL format supports two patterns:
 #   1. Full repo (skill is the whole repo):
-#      name: https://github.com/owner/repo
+#      skills:
+#        name: https://github.com/owner/repo
 #   2. Subdirectory within a repo (monorepo):
-#      name: https://github.com/owner/repo#path/to/skill
+#      skills:
+#        name: https://github.com/owner/repo#path/to/skill
 
 skills:
   # Official Anthropic skills (from anthropics/skills monorepo)

@@ -229,7 +229,7 @@ skills:
 
 **Resolution:** Official Claude Code docs confirm project-level `.claude/skills/<skill-name>/SKILL.md` is auto-discovered. Skills committed to version control are encouraged. No manual spike needed.
 
-**Plan:** `artifacts/runs/4f873bd1fc0049f9768c7876c7d66e08/plan.md`
+**Reference:** See PR #1 discussion for phase planning artifacts.
 
 ### Phase 1 — MVP (post-spike)
 
@@ -239,9 +239,10 @@ skills:
 | Write `skill-depot.sh list` command | Yes — alongside add | Complete |
 | Write `skill-depot.sh remove` command | Yes — alongside add | Complete |
 | Create initial `registry.yaml` (5–10 known skills) | Yes — parallel to script | Complete |
-| End-to-end test: install a real skill, verify Claude Code uses it | No — after all above | Complete |
+| End-to-end test: install/list/remove and verify skill files (`SKILL.md`) | No — after all above | Complete |
+| Manual check: verify Claude Code loads and uses installed project skill | No — after all above | Not started |
 
-**Plan:** `artifacts/runs/4f873bd1fc0049f9768c7876c7d66e08/plan.md`
+**Reference:** See PR #1 discussion for phase planning artifacts.
 
 ### Phase 2 — Registry & Short Names
 
