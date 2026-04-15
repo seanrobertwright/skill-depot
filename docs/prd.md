@@ -1,6 +1,6 @@
 # Skill Depot — Product Requirements Document
 
-**Status:** Draft  
+**Status:** Phase 1 Complete  
 **Date:** 2026-04-14  
 **Author:** Generated via PRD session
 
@@ -137,28 +137,31 @@ Clones the skill repo into `.claude/skills/<skill-name>/` in the current working
 
 ## 10. Technical Approach
 
-### Codebase State (verified 2026-04-14)
+### Codebase State (updated 2026-04-14)
 
-The repository at `D:/repos/skill-depot` (worktree: `archon/task-prd-skills-sh`) is **early scaffold only**. No implementation exists.
+Phase 1 implementation is complete. The repository contains:
 
-Verified file structure:
 ```
 skill-depot/
 ├── .archon/
-│   ├── commands/       # empty (.gitkeep only)
-│   ├── workflows/      # empty (.gitkeep only)
-│   └── config.yaml     # assistant: claude, worktree.baseBranch: main
+│   ├── commands/
+│   ├── workflows/
+│   └── config.yaml
+├── docs/
+│   └── prd.md
+├── tests/
+│   └── e2e-test.sh
+├── skill-depot.sh        # Main script — all commands implemented
+├── registry.yaml         # Static registry with skill short names
 ├── .gitignore
-└── README.md           # documents planned commands, no implementation
+└── README.md
 ```
-
-**Nothing to extend** — this is greenfield. All files listed in Technical Approach are to be created.
 
 ### Architecture Decision
 
 Install target: `.claude/skills/<skill-name>/` relative to `$PWD`.
 
-**BLOCKED on spike:** Claude Code's project-level skill loading behavior must be confirmed before this architecture is locked. See Open Questions #1.
+**Confirmed:** Claude Code loads project-level `.claude/skills/<skill-name>/SKILL.md` automatically. See Open Questions #1.
 
 ### Files to Create
 
@@ -168,7 +171,7 @@ Install target: `.claude/skills/<skill-name>/` relative to `$PWD`.
 | `registry.yaml` | Static manifest mapping short names to GitHub URLs (v1 registry) |
 | `.claude/skills/` | Created at install time in the target project (not in this repo) |
 
-### `skill-depot.sh` — Command Structure (planned, not verified)
+### `skill-depot.sh` — Command Structure (implemented)
 
 ```bash
 #!/usr/bin/env bash
@@ -187,12 +190,10 @@ A static `registry.yaml` in the skill-depot repo maps short names to GitHub clon
 
 ```yaml
 skills:
-  commit: https://github.com/anthropics/skills/commit
-  review-pr: https://github.com/anthropics/skills/review-pr
-  # ...
+  pdf: https://github.com/anthropics/skills#skills/pdf
+  commit: https://github.com/anthropics/skills#skills/commit
+  # URL#subdir fragment syntax for monorepo skill sources
 ```
-
-**Needs verification:** The canonical source for known skills and their GitHub URLs. Check skills.sh ecosystem or survey known skill repos before populating this file.
 
 ### Dependencies
 
@@ -222,27 +223,34 @@ skills:
 
 | Task | Owner | Status |
 |---|---|---|
-| Verify Claude Code loads project-level `.claude/skills/` | TBD | Not started |
+| Verify Claude Code loads project-level `.claude/skills/` | Docs research | Complete |
 
 **Gate:** Phase 1 does not begin until Phase 0 is confirmed.
+
+**Resolution:** Official Claude Code docs confirm project-level `.claude/skills/<skill-name>/SKILL.md` is auto-discovered. Skills committed to version control are encouraged. No manual spike needed.
+
+**Reference:** See PR #1 discussion for phase planning artifacts.
 
 ### Phase 1 — MVP (post-spike)
 
 | Task | Parallel? | Status |
 |---|---|---|
-| Write `skill-depot.sh` with `add <github-url>` | No — blocked on spike | Not started |
-| Write `skill-depot.sh list` command | Yes — alongside add | Not started |
-| Write `skill-depot.sh remove` command | Yes — alongside add | Not started |
-| Create initial `registry.yaml` (5–10 known skills) | Yes — parallel to script | Not started |
-| End-to-end test: install a real skill, verify Claude Code uses it | No — after all above | Not started |
+| Write `skill-depot.sh` with `add <github-url>` | No — blocked on spike | Complete |
+| Write `skill-depot.sh list` command | Yes — alongside add | Complete |
+| Write `skill-depot.sh remove` command | Yes — alongside add | Complete |
+| Create initial `registry.yaml` (5–10 known skills) | Yes — parallel to script | Complete |
+| End-to-end test: install/list/remove and verify skill files (`SKILL.md`) | No — after all above | Complete |
+| Manual check: verify Claude Code loads and uses installed project skill | No — after all above | Not started |
+
+**Reference:** See PR #1 discussion for phase planning artifacts.
 
 ### Phase 2 — Registry & Short Names
 
 | Task | Parallel? | Status |
 |---|---|---|
-| Wire `skill-depot add <short-name>` to registry lookup | No | Not started |
-| Expand registry to cover common skills | Yes | Not started |
-| Idempotent install behavior | Yes | Not started |
+| Wire `skill-depot add <short-name>` to registry lookup | No | Complete |
+| Expand registry to cover common skills | Yes | Complete |
+| Idempotent install behavior | Yes | Complete |
 
 ### Phase 3 — Polish (post-validation)
 

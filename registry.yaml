@@ -1,0 +1,25 @@
+# Skill Depot Registry v1
+# Maps short names to GitHub skill source URLs
+# Format:
+#   skills:
+#     <name>: <github-clone-url>#<subdirectory-path>
+#
+# URL format supports two patterns:
+#   1. Full repo (skill is the whole repo):
+#      skills:
+#        name: https://github.com/owner/repo
+#   2. Subdirectory within a repo (monorepo):
+#      skills:
+#        name: https://github.com/owner/repo#path/to/skill
+
+skills:
+  # Official Anthropic skills (from anthropics/skills monorepo)
+  claude-api: https://github.com/anthropics/skills#skills/claude-api
+  pdf: https://github.com/anthropics/skills#skills/pdf
+  skill-creator: https://github.com/anthropics/skills#skills/skill-creator
+  mcp-builder: https://github.com/anthropics/skills#skills/mcp-builder
+  frontend-design: https://github.com/anthropics/skills#skills/frontend-design
+  webapp-testing: https://github.com/anthropics/skills#skills/webapp-testing
+  docx: https://github.com/anthropics/skills#skills/docx
+  xlsx: https://github.com/anthropics/skills#skills/xlsx
+  pptx: https://github.com/anthropics/skills#skills/pptx
