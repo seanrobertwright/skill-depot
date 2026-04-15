@@ -101,11 +101,14 @@ else
   echo "  SKIP: idempotent network install test"
 fi
 
-# Test 7: Remove
+# Test 7: Remove (and empty-dir cleanup)
 echo "Test: remove skill"
 if [[ $NETWORK_OK -eq 1 ]]; then
   bash "$SKILL_DEPOT" remove pdf
   assert_dir_not_exists "skill dir removed" ".claude/skills/pdf"
+  # When the last skill is removed, .claude/skills/ should also be cleaned up
+  # so repos don't end up with stray empty dirs in their tree.
+  assert_dir_not_exists "empty .claude/skills dir cleaned up" ".claude/skills"
 else
   echo "  SKIP: remove network-installed skill test"
 fi

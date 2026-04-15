@@ -1,6 +1,10 @@
 # Archon runtime artifacts (never commit)
 .archon/mcp/
 
+# Skills installed by skill-depot for local testing — never commit into this
+# repo (it ships the installer, not a specific project's skill set)
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
