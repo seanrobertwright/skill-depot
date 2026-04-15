@@ -88,7 +88,7 @@ cmd_add() {
   local input="${1:-}"
   if [[ -z "$input" ]]; then
     echo "Usage: skill-depot add <skill-name|github-url>"
-    exit 1
+    return 1
   fi
 
   local url="" name="" subdir=""
@@ -111,18 +111,18 @@ cmd_add() {
     # Validate skill name to prevent path traversal
     if [[ ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
       echo "Error: invalid skill name '${name}'. Names must contain only letters, numbers, hyphens, and underscores."
-      exit 1
+      return 1
     fi
     if [[ ! -f "$REGISTRY_FILE" ]]; then
       echo "Error: registry file not found at ${REGISTRY_FILE}"
-      exit 1
+      return 1
     fi
     local entry
     entry=$(grep -E "^  ${name}:" "$REGISTRY_FILE" | head -1 | sed 's/^[[:space:]]*[^:]*:[[:space:]]*//' || true)
     if [[ -z "$entry" ]]; then
       echo "Error: skill '${name}' not found in registry."
       echo "Try: skill-depot add <github-url> to install directly."
-      exit 1
+      return 1
     fi
     url="$entry"
     if [[ "$url" == *"#"* ]]; then
@@ -134,7 +134,7 @@ cmd_add() {
   # Validate skill name to prevent path traversal
   if [[ ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     echo "Error: invalid skill name '${name}'. Names must contain only letters, numbers, hyphens, and underscores."
-    exit 1
+    return 1
   fi
 
   local target="${SKILLS_DIR}/${name}"
@@ -150,29 +150,32 @@ cmd_add() {
   mkdir -p "$SKILLS_DIR"
   local tmp staging_parent staged_target
   tmp="$(mktemp -d)"
-  staging_parent="$(mktemp -d "${SKILLS_DIR}/.${name}.tmp.XXXXXX")"
+  staging_parent="$(mktemp -d)"
   staged_target="${staging_parent}/${name}"
-  trap 'rm -rf "${tmp:-}" "${staging_parent:-}"' EXIT
+  trap 'rm -rf "${tmp:-}" "${staging_parent:-}"' RETURN
 
   echo "Installing skill '${name}'..."
   if ! GIT_TERMINAL_PROMPT=0 git clone --depth 1 --quiet "$url" "$tmp/repo"; then
     echo "Error: failed to clone ${url}"
-    exit 1
+    return 1
   fi
 
   # Extract skill (subdirectory or whole repo)
   if [[ -n "$subdir" ]]; then
     local repo_root source_path
+    # Validation is intentionally two-layered:
+    # 1) reject dangerous syntax early (/* absolute, ./ ../ and */./ */../ no-op/traversal, *//* duplicate separators)
+    # 2) enforce canonical path remains under the cloned repo root
     case "$subdir" in
-      /*|*"/.."|*"/../"*|".."|*"/."|*"/./"*|"."|*//*)
+      /*|"."|".."|*//*|./*|../*|*/./*|*/../*|*/.|*/..)
         echo "Error: invalid subdirectory '${subdir}' in ${url}"
-        exit 1
+        return 1
         ;;
     esac
 
     if [[ ! -d "$tmp/repo/$subdir" ]]; then
       echo "Error: subdirectory '${subdir}' not found in ${url}"
-      exit 1
+      return 1
     fi
 
     repo_root="$(cd "$tmp/repo" && pwd -P)"
@@ -183,7 +186,7 @@ cmd_add() {
         ;;
       *)
         echo "Error: invalid subdirectory '${subdir}' in ${url}"
-        exit 1
+        return 1
         ;;
     esac
 
@@ -195,8 +198,6 @@ cmd_add() {
   fi
 
   mv "$staged_target" "$target"
-  trap - EXIT
-  rm -rf "$tmp" "$staging_parent"
 
   # Verify SKILL.md exists
   if [[ ! -f "$target/SKILL.md" ]]; then

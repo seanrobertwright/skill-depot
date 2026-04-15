@@ -50,7 +50,8 @@ TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 cd "$TMPDIR"
 
-if ! git ls-remote --exit-code https://github.com/anthropics/skills >/dev/null 2>&1; then
+# Keep this short so CI/offline runs skip quickly instead of hanging on network checks.
+if ! GIT_TERMINAL_PROMPT=0 git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=3 ls-remote --exit-code https://github.com/anthropics/skills >/dev/null 2>&1; then
   NETWORK_OK=0
 fi
 
