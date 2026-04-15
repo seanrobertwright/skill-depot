@@ -6,26 +6,32 @@ A one-command, project-scoped installer for Claude Code skills.
 
 ## Quick Start
 
+Clone the repo so you have `skill-depot.sh` / `skill-depot.ps1` and `registry.yaml` together:
+
 ```bash
-# Clone this repo (recommended, includes registry.yaml)
 git clone https://github.com/seanrobertwright/skill-depot.git
 cd skill-depot
+```
 
-# Install a skill into your project by short name
+### macOS / Linux (bash)
+
+```bash
 ./skill-depot.sh add pdf
-
-# If you download only skill-depot.sh, use direct GitHub URLs
-# (short names require registry.yaml next to the script)
-
-# Or install directly from a GitHub URL
 ./skill-depot.sh add https://github.com/anthropics/skills#skills/claude-api
-
-# List installed skills
 ./skill-depot.sh list
-
-# Remove a skill
 ./skill-depot.sh remove pdf
 ```
+
+### Windows (PowerShell)
+
+```powershell
+.\skill-depot.ps1 add pdf
+.\skill-depot.ps1 add https://github.com/anthropics/skills#skills/claude-api
+.\skill-depot.ps1 list
+.\skill-depot.ps1 remove pdf
+```
+
+Run from the project directory you want to install skills *into* — the script resolves `registry.yaml` next to itself but installs into `.claude/skills/` in your current directory.
 
 ## Usage
 
@@ -67,8 +73,9 @@ Skill Depot supports two URL patterns:
 
 ## Requirements
 
-- `bash` >= 3.2
 - `git`
+- **Bash users**: `bash` >= 3.2 (macOS, Linux, WSL, Git Bash)
+- **PowerShell users**: PowerShell 5.1+ (ships with Windows 10/11) or PowerShell 7+
 
 ## Status
 
