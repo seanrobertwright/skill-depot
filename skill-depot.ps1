@@ -41,6 +41,7 @@ Usage:
   skill-depot add <github-url>      Install skill from GitHub URL
   skill-depot list                  List installed skills
   skill-depot remove <skill-name>   Remove an installed skill
+  skill-depot update [skill-name]   Update skill(s) to latest version
   skill-depot help                  Show this help
   skill-depot --version             Show version
 
@@ -232,6 +233,14 @@ function Invoke-Add {
 
         Move-Item -LiteralPath $stagedTarget -Destination $target
 
+        # Write origin metadata for update support
+        $commitHash = & git -C $repoPath rev-parse HEAD
+        @"
+url=$url
+subdir=$subdir
+commit=$commitHash
+"@ | Set-Content -LiteralPath (Join-Path $target '.skill-depot-origin') -Encoding utf8 -NoNewline
+
         # Verify SKILL.md
         if (-not (Test-Path -LiteralPath (Join-Path $target 'SKILL.md'))) {
             Write-Host "Warning: $target/SKILL.md not found. Claude Code requires SKILL.md to load skills."
@@ -245,6 +254,126 @@ function Invoke-Add {
     }
 }
 
+function Invoke-Update {
+    param([string]$InputArg)
+
+    $skillsToUpdate = @()
+
+    if ($InputArg) {
+        # Single skill update
+        Test-SkillName $InputArg
+        $target = Join-Path $SkillsDir $InputArg
+        if (-not (Test-Path -LiteralPath $target -PathType Container)) {
+            Write-Error "skill '$InputArg' is not installed in $SkillsDir/."
+        }
+        $skillsToUpdate += $InputArg
+    } else {
+        # Update all installed skills
+        if (-not (Test-Path -LiteralPath $SkillsDir)) {
+            Write-Host 'No skills installed to update.'
+            return
+        }
+        $dirs = Get-ChildItem -LiteralPath $SkillsDir -Directory -ErrorAction SilentlyContinue
+        if (-not $dirs) {
+            Write-Host 'No skills installed to update.'
+            return
+        }
+        $skillsToUpdate = $dirs | ForEach-Object { $_.Name }
+    }
+
+    $updated = 0
+    $upToDate = 0
+
+    foreach ($name in $skillsToUpdate) {
+        $target = Join-Path $SkillsDir $name
+        $originFile = Join-Path $target '.skill-depot-origin'
+
+        # Check for origin metadata
+        if (-not (Test-Path -LiteralPath $originFile)) {
+            Write-Error "skill '$name' has no origin metadata. Remove and re-add it: skill-depot remove $name && skill-depot add $name"
+        }
+
+        # Read origin metadata
+        $originData = @{}
+        Get-Content -LiteralPath $originFile | ForEach-Object {
+            $k, $v = $_ -split '=', 2
+            $originData[$k] = $v
+        }
+        $origUrl    = $originData['url']
+        $origSubdir = $originData['subdir']
+        $origCommit = $originData['commit']
+
+        # Check latest remote commit
+        $env:GIT_TERMINAL_PROMPT = '0'
+        $lsRemoteOutput = & git ls-remote $origUrl HEAD 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $lsRemoteOutput) {
+            Write-Error "cannot reach $origUrl"
+        }
+        $remoteCommit = ($lsRemoteOutput -split '\s')[0]
+
+        # Compare commits
+        if ($remoteCommit -eq $origCommit) {
+            Write-Host "Skill '$name' is already up to date."
+            $upToDate++
+            continue
+        }
+
+        # Clone fresh copy
+        $tmp           = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ([Guid]::NewGuid())) -Force
+        $stagingParent = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ([Guid]::NewGuid())) -Force
+        $stagedTarget  = Join-Path $stagingParent.FullName $name
+        $repoPath      = Join-Path $tmp.FullName 'repo'
+
+        try {
+            Write-Host "Updating skill '$name'..."
+
+            & git clone --depth 1 --quiet $origUrl $repoPath
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "failed to clone $origUrl"
+            }
+
+            # Extract
+            if ($origSubdir) {
+                if (-not (Test-SafeSubdir -Subdir $origSubdir -RepoRoot $repoPath)) {
+                    Write-Error "invalid or missing subdirectory '$origSubdir' in origin metadata for '$name'"
+                }
+                $source = Join-Path $repoPath $origSubdir
+                Copy-Item -LiteralPath $source -Destination $stagedTarget -Recurse
+            } else {
+                New-Item -ItemType Directory -Path $stagedTarget -Force | Out-Null
+                Get-ChildItem -LiteralPath $repoPath -Force |
+                    Where-Object { $_.Name -ne '.git' } |
+                    ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $stagedTarget -Recurse -Force }
+            }
+
+            # Non-atomic replace — skill dir is briefly absent between Remove-Item and Move-Item
+            Remove-Item -LiteralPath $target -Recurse -Force
+            Move-Item -LiteralPath $stagedTarget -Destination $target
+
+            # Write updated origin metadata
+            $commitHash = & git -C $repoPath rev-parse HEAD
+            @"
+url=$origUrl
+subdir=$origSubdir
+commit=$commitHash
+"@ | Set-Content -LiteralPath (Join-Path $target '.skill-depot-origin') -Encoding utf8 -NoNewline
+
+            Write-Host "Updated skill '$name'."
+            $updated++
+        }
+        finally {
+            Remove-Item -LiteralPath $tmp.FullName           -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $stagingParent.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Summary for update-all
+    if (-not $InputArg -and ($updated + $upToDate) -gt 1) {
+        Write-Host ''
+        Write-Host "Update summary: $updated updated, $upToDate already up to date."
+    }
+}
+
 # Note: single-dash flags like -v / -h are unreliable in PowerShell's -File mode
 # (PS's arg parser tries to bind them as parameters). Prefer `help` / `version`
 # or the double-dash forms `--help` / `--version`.
@@ -252,6 +381,7 @@ switch ($Command) {
     'add'        { Invoke-Add    $Arg1 }
     'list'       { Invoke-List }
     'remove'     { Invoke-Remove $Arg1 }
+    'update'     { Invoke-Update $Arg1 }
     'help'       { Show-Usage }
     '--help'     { Show-Usage }
     'version'    { "skill-depot $Version" }

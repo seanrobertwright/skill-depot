@@ -256,8 +256,8 @@ skills:
 
 | Task | Parallel? | Status |
 |---|---|---|
-| Error handling and user-facing messages | Yes | Not started |
-| `update` command | Yes | Not started |
+| Error handling and user-facing messages | Yes | Complete |
+| `update` command | Yes | Complete |
 | Conflict detection (overlapping command names) | Yes | Not started |
 
 ---

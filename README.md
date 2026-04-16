@@ -19,6 +19,7 @@ cd skill-depot
 ./skill-depot.sh add pdf
 ./skill-depot.sh add https://github.com/anthropics/skills#skills/claude-api
 ./skill-depot.sh list
+./skill-depot.sh update pdf
 ./skill-depot.sh remove pdf
 ```
 
@@ -28,6 +29,7 @@ cd skill-depot
 .\skill-depot.ps1 add pdf
 .\skill-depot.ps1 add https://github.com/anthropics/skills#skills/claude-api
 .\skill-depot.ps1 list
+.\skill-depot.ps1 update pdf
 .\skill-depot.ps1 remove pdf
 ```
 
@@ -40,6 +42,7 @@ skill-depot add <skill-name>      # Install skill from registry
 skill-depot add <github-url>      # Install skill from GitHub URL
 skill-depot list                  # List installed skills
 skill-depot remove <skill-name>   # Remove an installed skill
+skill-depot update [skill-name]   # Update skill(s) to latest version
 skill-depot help                  # Show this help
 skill-depot --version             # Show version
 ```
@@ -79,4 +82,4 @@ Skill Depot supports two URL patterns:
 
 ## Status
 
-Phase 0 (validation) and Phase 1 (MVP) complete. See `docs/prd.md` for roadmap.
+Phase 0 (validation), Phase 1 (MVP), and Phase 3 (update command) complete. See `docs/prd.md` for roadmap.
