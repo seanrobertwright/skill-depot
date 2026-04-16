@@ -85,6 +85,21 @@ cmd_remove() {
   fi
 }
 
+validate_subdir() {
+  local subdir="$1" repo_root="$2"
+  # Reject dangerous syntax early (absolute, traversal, double-separator)
+  case "$subdir" in
+    /*|"."|".."|*//*|./*|../*|*/./*|*/../*|*/.|*/..)
+      return 1 ;;
+  esac
+  [[ -d "$repo_root/$subdir" ]] || return 1
+  # Canonicalize and ensure it stays under the repo root
+  local resolved_root resolved_source
+  resolved_root="$(cd "$repo_root" && pwd -P)"
+  resolved_source="$(cd "$repo_root/$subdir" && pwd -P)"
+  [[ "$resolved_source" == "$resolved_root"/* ]]
+}
+
 cmd_add() {
   local input="${1:-}"
   if [[ -z "$input" ]]; then
@@ -163,34 +178,12 @@ cmd_add() {
 
   # Extract skill (subdirectory or whole repo)
   if [[ -n "$subdir" ]]; then
-    local repo_root source_path
-    # Validation is intentionally two-layered:
-    # 1) reject dangerous syntax early (/* absolute, ./ ../ and */./ */../ no-op/traversal, *//* duplicate separators)
-    # 2) enforce canonical path remains under the cloned repo root
-    case "$subdir" in
-      /*|"."|".."|*//*|./*|../*|*/./*|*/../*|*/.|*/..)
-        echo "Error: invalid subdirectory '${subdir}' in ${url}"
-        return 1
-        ;;
-    esac
-
-    if [[ ! -d "$tmp/repo/$subdir" ]]; then
-      echo "Error: subdirectory '${subdir}' not found in ${url}"
+    if ! validate_subdir "$subdir" "$tmp/repo"; then
+      echo "Error: invalid or missing subdirectory '${subdir}' in ${url}"
       return 1
     fi
-
-    repo_root="$(cd "$tmp/repo" && pwd -P)"
+    local source_path
     source_path="$(cd "$tmp/repo/$subdir" && pwd -P)"
-
-    case "$source_path" in
-      "$repo_root"|"$repo_root"/*)
-        ;;
-      *)
-        echo "Error: invalid subdirectory '${subdir}' in ${url}"
-        return 1
-        ;;
-    esac
-
     cp -r "$source_path" "$staged_target"
   else
     # Copy whole repo, excluding .git
@@ -298,17 +291,19 @@ cmd_update() {
 
     # Extract skill (subdirectory or whole repo)
     if [[ -n "$orig_subdir" ]]; then
-      if [[ ! -d "$tmp/repo/$orig_subdir" ]]; then
-        echo "Error: subdirectory '${orig_subdir}' not found in ${orig_url}"
+      if ! validate_subdir "$orig_subdir" "$tmp/repo"; then
+        echo "Error: invalid or missing subdirectory '${orig_subdir}' in origin metadata for '${name}'"
         return 1
       fi
-      cp -r "$tmp/repo/$orig_subdir" "$staged_target"
+      local source_path
+      source_path="$(cd "$tmp/repo/$orig_subdir" && pwd -P)"
+      cp -r "$source_path" "$staged_target"
     else
       mkdir -p "$staged_target"
       (cd "$tmp/repo" && find . -maxdepth 1 ! -name . ! -name .git -exec cp -r {} "$staged_target/" \;)
     fi
 
-    # Atomic swap: remove old, move new
+    # Non-atomic replace — skill dir is briefly absent between rm and mv
     rm -rf "$target"
     mv "$staged_target" "$target"
 

@@ -238,6 +238,49 @@ else
   echo "  SKIP: network unavailable"
 fi
 
+# Test 19: Update with invalid skill name (path traversal)
+echo "Test: update with invalid skill name"
+if output=$(bash "$SKILL_DEPOT" update "../.git" 2>&1); then
+  echo "  FAIL: should have exited non-zero"
+  FAIL=$((FAIL + 1))
+else
+  assert_contains "error for invalid update name" "invalid skill name" "$output"
+fi
+
+# Test 20: Update skill with no origin metadata (pre-MVP install)
+echo "Test: update skill missing origin metadata"
+mkdir -p ".claude/skills/fake-skill"
+echo "# fake" > ".claude/skills/fake-skill/SKILL.md"
+if output=$(bash "$SKILL_DEPOT" update fake-skill 2>&1); then
+  echo "  FAIL: should have exited non-zero"
+  FAIL=$((FAIL + 1))
+else
+  assert_contains "error for missing origin" "no origin metadata" "$output"
+  assert_contains "remediation hint" "remove" "$output"
+fi
+rm -rf ".claude/skills/fake-skill"
+
+# Test 21: Update with unreachable origin URL
+echo "Test: update with unreachable origin"
+mkdir -p ".claude/skills/bad-origin"
+echo "# fake" > ".claude/skills/bad-origin/SKILL.md"
+cat > ".claude/skills/bad-origin/.skill-depot-origin" <<EOF
+url=https://github.com/nonexistent/repo-does-not-exist-xyz
+subdir=
+commit=0000000000000000000000000000000000000000
+EOF
+if [[ $NETWORK_OK -eq 1 ]]; then
+  if output=$(bash "$SKILL_DEPOT" update bad-origin 2>&1); then
+    echo "  FAIL: should have exited non-zero"
+    FAIL=$((FAIL + 1))
+  else
+    assert_contains "error for unreachable origin" "cannot reach" "$output"
+  fi
+else
+  echo "  SKIP: network unavailable"
+fi
+rm -rf ".claude/skills/bad-origin"
+
 # Cleanup after update tests
 if [[ $NETWORK_OK -eq 1 ]]; then
   bash "$SKILL_DEPOT" remove pdf

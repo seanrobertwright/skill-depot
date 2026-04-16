@@ -334,10 +334,10 @@ function Invoke-Update {
 
             # Extract
             if ($origSubdir) {
-                $source = Join-Path $repoPath $origSubdir
-                if (-not (Test-Path -LiteralPath $source -PathType Container)) {
-                    Write-Error "subdirectory '$origSubdir' not found in $origUrl"
+                if (-not (Test-SafeSubdir -Subdir $origSubdir -RepoRoot $repoPath)) {
+                    Write-Error "invalid or missing subdirectory '$origSubdir' in origin metadata for '$name'"
                 }
+                $source = Join-Path $repoPath $origSubdir
                 Copy-Item -LiteralPath $source -Destination $stagedTarget -Recurse
             } else {
                 New-Item -ItemType Directory -Path $stagedTarget -Force | Out-Null
@@ -346,7 +346,7 @@ function Invoke-Update {
                     ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $stagedTarget -Recurse -Force }
             }
 
-            # Atomic swap
+            # Non-atomic replace — skill dir is briefly absent between Remove-Item and Move-Item
             Remove-Item -LiteralPath $target -Recurse -Force
             Move-Item -LiteralPath $stagedTarget -Destination $target
 
