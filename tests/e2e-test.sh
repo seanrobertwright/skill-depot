@@ -176,6 +176,73 @@ else
   assert_contains "error for invalid remove name" "invalid skill name" "$output"
 fi
 
+# Test 14: Origin file written on add
+echo "Test: origin metadata written on add"
+if [[ $NETWORK_OK -eq 1 ]]; then
+  bash "$SKILL_DEPOT" add pdf
+  assert_file_exists "origin file exists" ".claude/skills/pdf/.skill-depot-origin"
+  output=$(cat ".claude/skills/pdf/.skill-depot-origin")
+  assert_contains "origin has url" "url=https://github.com/anthropics/skills" "$output"
+  assert_contains "origin has subdir" "subdir=skills/pdf" "$output"
+  assert_contains "origin has commit" "commit=" "$output"
+else
+  echo "  SKIP: network unavailable"
+fi
+
+# Test 15: Update single skill (already up to date — just installed)
+echo "Test: update single skill (already up to date)"
+if [[ $NETWORK_OK -eq 1 ]]; then
+  output=$(bash "$SKILL_DEPOT" update pdf 2>&1)
+  assert_contains "up to date message" "already up to date" "$output"
+else
+  echo "  SKIP: network unavailable"
+fi
+
+# Test 16: Update all skills
+echo "Test: update all skills"
+if [[ $NETWORK_OK -eq 1 ]]; then
+  output=$(bash "$SKILL_DEPOT" update 2>&1)
+  assert_contains "update all reports on pdf" "pdf" "$output"
+else
+  echo "  SKIP: network unavailable"
+fi
+
+# Test 17: Update non-installed skill (error)
+echo "Test: update non-installed skill"
+if output=$(bash "$SKILL_DEPOT" update nonexistent-xyz 2>&1); then
+  echo "  FAIL: should have exited non-zero"
+  FAIL=$((FAIL + 1))
+else
+  assert_contains "error for non-installed update" "not installed" "$output"
+fi
+
+# Test 18: Update detects stale origin (simulated by tampering commit hash)
+echo "Test: update detects stale origin (simulated)"
+if [[ $NETWORK_OK -eq 1 ]]; then
+  # Tamper with the commit hash to force an update
+  sed -i.bak 's/^commit=.*/commit=0000000000000000000000000000000000000000/' \
+      ".claude/skills/pdf/.skill-depot-origin"
+  rm -f ".claude/skills/pdf/.skill-depot-origin.bak"
+  output=$(bash "$SKILL_DEPOT" update pdf 2>&1)
+  assert_contains "updated message" "Updated" "$output"
+  # Verify origin file has real commit hash after update
+  new_commit=$(grep '^commit=' ".claude/skills/pdf/.skill-depot-origin" | cut -d= -f2-)
+  if [[ "$new_commit" != "0000000000000000000000000000000000000000" ]] && [[ -n "$new_commit" ]]; then
+    echo "  PASS: commit hash updated after update"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL: commit hash not updated"
+    FAIL=$((FAIL + 1))
+  fi
+else
+  echo "  SKIP: network unavailable"
+fi
+
+# Cleanup after update tests
+if [[ $NETWORK_OK -eq 1 ]]; then
+  bash "$SKILL_DEPOT" remove pdf
+fi
+
 # Summary
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
